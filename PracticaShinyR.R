@@ -8,7 +8,7 @@ library(devtools)
 
 # Cargamos el archivo que contiene la database y los ruidos
 source("database.R")
-source("noises.R")
+source("noisesNoReactive.R")
 
 # Creacion de muestra aleatoria para el numero a mostrar
 a = sample(500, 1)
@@ -47,7 +47,9 @@ ui = dashboardPage(
                                                 label = "Percentage",
                                                 value = 0),
                                    selectInput("noises", label = "Noise", 
-                                               choices = list("Normal noise", "Uniform noise", "Pure black"))),
+                                               choices = list("Normal noise", 
+                                                              "Uniform noise", 
+                                                              "Pure black"))),
                   checkboxInput("zeroing_noise", "Zeroing noise"),
                   conditionalPanel("input.zeroing_noise == true",
                                    numericInput("zeroing_p",
@@ -55,11 +57,13 @@ ui = dashboardPage(
                                                 value = 0)),
                   checkboxInput("vertical_lines", "Vertical lines"),
                   conditionalPanel("input.vertical_lines == true",
-                                   numericInput("vertical_n",
-                                                label = "How many?",
-                                                value = 0))
+                                   numericInput("vertical_p",
+                                                label = "Percentage",
+                                                value = 0)),
+                  actionButton("apply_ch", "Apply Changes")
               ),
-              box(title = "Number of conditions")
+              box(title = "Number of conditions",
+                  verbatimTextOutput("no_conditions"))
       ),
       
       # Tab con la tabla donde aparecen los resultados numéricos
@@ -75,33 +79,42 @@ ui = dashboardPage(
 server = server = function(input, output, session) {
   
   true_label = reactiveValues(number = NULL)
-  yn = reactiveValues(x = NULL) # Reactive para el resultado del text "success"
-  change = reactiveValues(pict = NULL)
+  
+  
   
   # Clickar en "Play!" produce:
   observeEvent(input$submit, {
     true_label$number = labels[[a]]
-    output$real_num = renderText({ # Aparece el numero de la label
-      paste0("The real number is ", true_label$number)
-    })
     output$success = renderText({ # Compara el número introducido con el número de la label
       ifelse(input$guess == as.numeric(true_label$number), 
-             "Correct! That's the number!", "Sorry, that's not the number!")
+             "Correct!", "Sorry, that's not the number!")
+    })
+    output$real_num = renderText({ # Aparece el numero de la label
+      ifelse(input$guess == as.numeric(true_label$number),
+             "That's the number!", paste0("The actual number is", " ", true_label$number))
     })
   })
+
   
   #observeEvent(input$submit, {
     #a = sample(500, 1)
   #})
-  
-  
+ 
   
   output$imagen <- renderPlot({
-    img <- imagenes[[a]]
+   img <- imagenes[[a]]
     img = normalNoise(img)
+    #img = uniformNoise(img)
     img = verticalLinesNoise(img)
     image(img, axes=FALSE)
   })
+  
+  observe({ 
+    input$submit
+    isolate({
+      a = as.integer(imagenes[[sample(500, 1)]])
+    })    
+  }) 
   
 }
 
